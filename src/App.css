@@ -1,0 +1,103 @@
+/* App Container */
+.App {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  /* Hero Section */
+  .hero-section {
+    padding: 3rem 0;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    margin-bottom: 2rem;
+  }
+  
+  .hero-section h1 {
+    font-size: 3rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .subtitle {
+    font-size: 1.25rem;
+    opacity: 0.9;
+  }
+  
+  /* Generation Interface */
+  .generation-interface {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin-bottom: 3rem;
+  }
+  
+  .control-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  
+  .control-section {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  .control-section h2 {
+    font-size: 1.25rem;
+    margin-bottom: 1rem;
+    color: #333;
+  }
+  
+  .generate-section {
+    background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+    color: white;
+    text-align: center;
+  }
+  
+  .output-panel {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    min-height: 500px;
+  }
+  
+  /* Footer */
+  .footer {
+    margin-top: auto;
+    background-color: #2c3e50;
+    color: white;
+    padding: 2rem 0;
+  }
+  
+  .footer p {
+    margin: 0;
+    opacity: 0.8;
+  }
+  
+  /* Responsive Design */
+  @media (max-width: 1024px) {
+    .generation-interface {
+      grid-template-columns: 1fr;
+    }
+    
+    .output-panel {
+      min-height: 300px;
+    }
+  }
+  
+  @media (max-width: 768px) {
+    .hero-section h1 {
+      font-size: 2rem;
+    }
+    
+    .subtitle {
+      font-size: 1rem;
+    }
+    
+    .control-section {
+      padding: 1rem;
+    }
+  }

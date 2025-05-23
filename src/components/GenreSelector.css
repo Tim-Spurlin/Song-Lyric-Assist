@@ -1,0 +1,30 @@
+.genre-selector {
+    width: 100%;
+  }
+  
+  .genre-dropdown {
+    width: 100%;
+    padding: 0.75rem;
+    font-size: 1rem;
+    border: 2px solid #e0e0e0;
+    border-radius: 4px;
+    background-color: white;
+    cursor: pointer;
+    transition: border-color 0.3s;
+  }
+  
+  .genre-dropdown:hover {
+    border-color: #bdbdbd;
+  }
+  
+  .genre-dropdown:focus {
+    border-color: #667eea;
+    outline: none;
+  }
+  
+  .genre-description {
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+    color: #666;
+    font-style: italic;
+  }

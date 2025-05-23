@@ -1,0 +1,57 @@
+.style-prompt {
+    width: 100%;
+  }
+  
+  .style-textarea {
+    width: 100%;
+    min-height: 150px;
+    padding: 1rem;
+    font-size: 1rem;
+    line-height: 1.5;
+    border: 2px solid #e0e0e0;
+    border-radius: 4px;
+    resize: vertical;
+    font-family: inherit;
+    transition: border-color 0.3s;
+  }
+  
+  .style-textarea:focus {
+    border-color: #667eea;
+    outline: none;
+  }
+  
+  .character-count {
+    text-align: right;
+    margin-top: 0.25rem;
+    font-size: 0.85rem;
+    color: #666;
+  }
+  
+  .character-count .warning {
+    color: #ff9800;
+    font-weight: 600;
+  }
+  
+  .prompt-suggestions {
+    margin-top: 1rem;
+    padding: 1rem;
+    background-color: #f5f5f5;
+    border-radius: 4px;
+    font-size: 0.9rem;
+  }
+  
+  .suggestions-title {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: #333;
+  }
+  
+  .prompt-suggestions ul {
+    margin: 0;
+    padding-left: 1.5rem;
+    color: #666;
+  }
+  
+  .prompt-suggestions li {
+    margin-bottom: 0.25rem;
+  }

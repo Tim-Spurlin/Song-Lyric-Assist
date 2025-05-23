@@ -3,3 +3,39 @@
 **/*.csv filter=lfs diff=lfs merge=lfs -text
 **/*.mp3 filter=lfs diff=lfs merge=lfs -text
 **/*.wav filter=lfs diff=lfs merge=lfs -text
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# These files are text and should be normalized (convert CRLF to LF)
+*.js text eol=lf
+*.jsx text eol=lf
+*.json text eol=lf
+*.css text eol=lf
+*.scss text eol=lf
+*.html text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+
+# These files are binary and should be left untouched
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.mp3 binary
+*.mp4 binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.pdf binary
+
+# Exclude files from language statistics
+Genres/HipHop-Rap/multiple_artists_lyrics/* linguist-vendored
+*.csv linguist-detectable=false
+*.jar binary
+
+# Large file support for split CSV files
+Genres/HipHop-Rap/multiple_artists_lyrics/rappers_part_* filter=lfs diff=lfs merge=lfs -text
