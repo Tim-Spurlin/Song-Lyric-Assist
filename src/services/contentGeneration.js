@@ -3,6 +3,10 @@ import { blendStyles } from './styleBlender';
 import { loadArtistData } from './dataLoader';
 import { SONG_STRUCTURES } from '../utils/constants';
 
+// Google AI API configuration
+const API_KEY = process.env.REACT_APP_GOOGLE_AI_API_KEY;
+const AI_MODEL = process.env.REACT_APP_AI_MODEL;
+
 // Main generation function
 export const generateLyrics = async (parameters) => {
   const { genre, artists, stylePrompt, editRequest, exclusions } = parameters;
