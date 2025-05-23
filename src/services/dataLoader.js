@@ -1,24 +1,33 @@
+// src/services/dataLoader.js
 import { GENRES } from '../utils/constants';
 
-// Cache for loaded artist data
+const GITHUB_RAW_BASE = 'https://raw.githubusercontent.com/tim-spurlin/song-lyric-assist/main';
 const dataCache = new Map();
 
-// Load artist data from the repository
 export const loadArtistData = async (genre, artistId) => {
   const cacheKey = `${genre}/${artistId}`;
   
-  // Check cache first
   if (dataCache.has(cacheKey)) {
     return dataCache.get(cacheKey);
   }
 
   try {
-    // Determine the correct path based on genre structure
     const path = getArtistDataPath(genre, artistId);
+    const jsonPath = `${GITHUB_RAW_BASE}/${path}`;
     
-    // In a real implementation, this would fetch from your GitHub repo or API
-    // For now, we'll simulate with mock data
-    const artistData = await fetchArtistData(path);
+    // Fetch the actual JSON data from GitHub
+    const response = await fetch(jsonPath);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch data for ${artistId}`);
+    }
+    
+    const artistData = await response.json();
+    
+    // Validate the data structure
+    if (!artistData.songs || artistData.songs.length === 0) {
+      console.warn(`No songs found for ${artistId}`);
+      return getMockArtistData(artistId);
+    }
     
     // Cache the result
     dataCache.set(cacheKey, artistData);
@@ -26,166 +35,137 @@ export const loadArtistData = async (genre, artistId) => {
     return artistData;
   } catch (error) {
     console.error(`Failed to load data for ${artistId}:`, error);
-    return getMockArtistData(artistId);
+    
+    // Try alternative formats (CSV, TXT)
+    return await loadAlternativeFormats(genre, artistId);
   }
 };
 
-// Get the correct file path for an artist
-const getArtistDataPath = (genre, artistId) => {
-  const genreData = GENRES[genre];
-  
-  if (genreData.subgenres) {
-    // For genres with subgenres (like Country), find which subgenre contains the artist
-    for (const [subgenreKey, subgenre] of Object.entries(genreData.subgenres)) {
-      if (subgenre.artists.includes(artistId)) {
-        return `Genres/${genre}/${subgenreKey}/${artistId}/lyric-dataset.json`;
+// Load data from CSV or TXT files if JSON fails
+const loadAlternativeFormats = async (genre, artistId) => {
+  try {
+    // Check for CSV files
+    const csvPaths = [
+      `Genres/${genre}/${artistId}/${artistId.toLowerCase()}_data.csv`,
+      `Genres/${genre}/${artistId}/lyric-dataset.csv`,
+      `Genres/${genre}/${artistId}/discog_data.csv`
+    ];
+    
+    for (const csvPath of csvPaths) {
+      try {
+        const response = await fetch(`${GITHUB_RAW_BASE}/${csvPath}`);
+        if (response.ok) {
+          const csvText = await response.text();
+          return parseCSVToArtistData(csvText, artistId);
+        }
+      } catch (e) {
+        continue;
       }
     }
-  }
-  
-  // For genres without subgenres
-  return `Genres/${genre}/${artistId}/lyric-dataset.json`;
-};
-
-// Fetch artist data (mock implementation)
-const fetchArtistData = async (path) => {
-  // In production, this would fetch from:
-  // - GitHub API
-  // - Your backend API
-  // - Or directly from the public GitHub pages URL
-  
-  console.log(`Fetching artist data from: ${path}`);
-  
-  // Simulate async fetch
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(getMockArtistData(path.split('/').pop().replace('.json', '')));
-    }, 100);
-  });
-};
-
-// Load all artists for a genre
-export const loadGenreArtists = async (genre) => {
-  const genreData = GENRES[genre];
-  if (!genreData) return [];
-
-  let allArtists = [];
-
-  if (genreData.subgenres) {
-    // Handle genres with subgenres
-    for (const subgenre of Object.values(genreData.subgenres)) {
-      const subgenreArtists = await Promise.all(
-        subgenre.artists.map(artistId => loadArtistData(genre, artistId))
-      );
-      allArtists = [...allArtists, ...subgenreArtists];
+    
+    // Try TXT format
+    const txtPath = `Genres/${genre}/${artistId}/lyric-dataset.txt`;
+    const response = await fetch(`${GITHUB_RAW_BASE}/${txtPath}`);
+    if (response.ok) {
+      const txtContent = await response.text();
+      return parseTXTToArtistData(txtContent, artistId);
     }
-  } else {
-    // Handle genres without subgenres
-    allArtists = await Promise.all(
-      genreData.artists.map(artistId => loadArtistData(genre, artistId))
-    );
+  } catch (error) {
+    console.error(`All format attempts failed for ${artistId}:`, error);
   }
-
-  return allArtists;
+  
+  return getMockArtistData(artistId);
 };
 
-// Clear cache
-export const clearDataCache = () => {
-  dataCache.clear();
-};
-
-// Get cache size
-export const getCacheSize = () => {
-  return dataCache.size;
-};
-
-// Mock data generator for development
-const getMockArtistData = (artistId) => {
-  const artistName = artistId.replace(/-/g, ' ');
+// Parse CSV data into our standard format
+const parseCSVToArtistData = (csvText, artistId) => {
+  const lines = csvText.split('\n');
+  const headers = lines[0].split(',').map(h => h.trim());
+  const songs = [];
+  
+  for (let i = 1; i < lines.length; i++) {
+    const values = lines[i].split(',');
+    if (values.length < 2) continue;
+    
+    const song = {
+      id: `song_${i}`,
+      title: values[headers.indexOf('title')] || values[0],
+      lyrics: values[headers.indexOf('lyrics')] || values[1],
+      album: values[headers.indexOf('album')] || 'Unknown',
+      year: parseInt(values[headers.indexOf('year')]) || 2020
+    };
+    
+    if (song.lyrics && song.lyrics.length > 10) {
+      songs.push(song);
+    }
+  }
   
   return {
     artist: {
-      name: artistName,
-      genres: ['Mock Genre'],
-      activeYears: '2020-present',
-      totalSongs: 50
+      name: artistId.replace(/-/g, ' '),
+      genres: ['Loaded from CSV'],
+      totalSongs: songs.length
     },
+    songs: songs,
     metadata: {
-      lastUpdated: new Date().toISOString(),
-      sourceVerification: 'Mock data for development',
-      analysisReady: true
-    },
-    songs: generateMockSongs(artistName, 10),
-    styleProfile: {
-      commonThemes: ['love', 'life', 'dreams'],
-      vocabularySignature: ['heart', 'soul', 'night', 'light'],
-      structuralPatterns: ['verse-chorus-verse', 'bridge-usage'],
-      rhymingStyle: 'ABAB patterns with internal rhymes',
-      meterPreferences: '4/4 time signature'
+      sourceType: 'csv',
+      lastUpdated: new Date().toISOString()
     }
   };
 };
 
-// Generate mock songs for development
-const generateMockSongs = (artistName, count) => {
+// Parse TXT data into our standard format
+const parseTXTToArtistData = (txtContent, artistId) => {
+  const songSections = txtContent.split(/\n\[/);
   const songs = [];
   
-  for (let i = 1; i <= count; i++) {
-    songs.push({
-      id: `song_${i}`,
-      title: `Song ${i}`,
-      album: `Album ${Math.ceil(i / 3)}`,
-      year: 2020 + Math.floor(Math.random() * 5),
-      lyrics: generateMockLyrics(),
-      structure: {
-        verse1: 'First verse content...',
-        chorus: 'Chorus content...',
-        verse2: 'Second verse content...',
-        bridge: 'Bridge content...',
-        outro: 'Outro content...'
-      },
-      analysis: {
-        rhymeScheme: 'ABAB',
-        syllableCount: [8, 8, 8, 8],
-        keyThemes: ['love', 'dreams', 'journey'],
-        vocabulary: ['heart', 'soul', 'time'],
-        sentiment: 'positive'
+  songSections.forEach((section, index) => {
+    const lines = section.split('\n');
+    const titleMatch = lines[0].match(/\[(.*?)\]/) || section.match(/^(.*?)\n/);
+    
+    if (titleMatch) {
+      const title = titleMatch[1] || `Song ${index + 1}`;
+      const lyrics = lines.slice(1).join('\n').trim();
+      
+      if (lyrics.length > 10) {
+        songs.push({
+          id: `song_${index}`,
+          title: title,
+          lyrics: lyrics,
+          structure: extractSongStructure(lyrics)
+        });
       }
-    });
-  }
+    }
+  });
   
-  return songs;
+  return {
+    artist: {
+      name: artistId.replace(/-/g, ' '),
+      genres: ['Loaded from TXT'],
+      totalSongs: songs.length
+    },
+    songs: songs,
+    metadata: {
+      sourceType: 'txt',
+      lastUpdated: new Date().toISOString()
+    }
+  };
 };
 
-// Generate mock lyrics
-const generateMockLyrics = () => {
-  return `[Verse 1]
-Walking down this empty street tonight
-Searching for the answers in the starlight
-Every step I take feels right
-In this moment everything's alright
-
-[Chorus]
-We're gonna fly, we're gonna soar
-Higher than we've been before
-Open up your heart and see
-This is where we're meant to be
-
-[Verse 2]
-Looking back at all we've overcome
-Every battle fought and every victory won
-The journey's only just begun
-Together we shine brighter than the sun
-
-[Bridge]
-When the world gets heavy
-And the path's unsteady
-We'll find our way
-To a brighter day
-
-[Chorus]
-We're gonna fly, we're gonna soar
-Higher than we've been before
-Open up your heart and see
-This is where we're meant to be`;
+// Extract song structure from lyrics
+const extractSongStructure = (lyrics) => {
+  const structure = {};
+  const sections = lyrics.split(/\n\n/);
+  
+  sections.forEach(section => {
+    const lines = section.split('\n');
+    const sectionMatch = lines[0].match(/^\[(Verse|Chorus|Bridge|Outro|Pre-Chorus|Intro).*?\]/i);
+    
+    if (sectionMatch) {
+      const sectionType = sectionMatch[1].toLowerCase();
+      structure[sectionType] = lines.slice(1).join('\n');
+    }
+  });
+  
+  return structure;
 };
