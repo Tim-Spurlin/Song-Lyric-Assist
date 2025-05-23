@@ -52,15 +52,15 @@ const generateContent = async ({ styleProfile, userPrompt, editRequest, exclusio
   try {
     // Build the prompt
     const prompt = `
-You are an expert songwriter. Generate song lyrics in the style of ${artists.join(' and ')}.
+You are an expert songwriter. Generate only the song lyrics, without mentioning any artist names or including any other commentary.
 
 Genre: ${genre}
 Style characteristics: ${JSON.stringify(styleProfile, null, 2)}
-User's creative direction: ${userPrompt || 'Create something authentic to the artist(s) style'}
+User's creative direction: ${userPrompt || 'Create something authentic to the style'}
 ${editRequest ? `Special request: ${editRequest}` : ''}
 ${exclusions.length > 0 ? `Avoid these themes/words: ${exclusions.join(', ')}` : ''}
 
-Generate complete song lyrics with verses, chorus, and bridge.`;
+Generate complete song lyrics with verses, chorus, and bridge. Only output the lyrics—do not reference artists, your role, or any instructions.`;
 
     // Generate content with Gemma
     const text = await generateWithGemma(prompt);
