@@ -1,11 +1,16 @@
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { analyzeArtistStyle } from './lyricAnalysis';
 import { blendStyles } from './styleBlender';
 import { loadArtistData } from './dataLoader';
 import { SONG_STRUCTURES } from '../utils/constants';
+import { generateWithGemma } from './gemmaService';
 
 // Google AI API configuration
 const API_KEY = process.env.REACT_APP_GOOGLE_AI_API_KEY;
-const AI_MODEL = process.env.REACT_APP_AI_MODEL;
+const AI_MODEL = process.env.REACT_APP_AI_MODEL || 'gemini-pro';
+
+// Initialize Google AI
+const genAI = new GoogleGenerativeAI(API_KEY);
 
 // Main generation function
 export const generateLyrics = async (parameters) => {
@@ -30,7 +35,9 @@ export const generateLyrics = async (parameters) => {
       styleProfile: combinedStyle,
       userPrompt: stylePrompt,
       editRequest,
-      exclusions
+      exclusions,
+      genre,
+      artists
     });
 
     return lyrics;
@@ -40,73 +47,83 @@ export const generateLyrics = async (parameters) => {
   }
 };
 
-// Content generation logic
-const generateContent = async ({ styleProfile, userPrompt, editRequest, exclusions }) => {
-  // This is a placeholder implementation
-  // In a real application, this would call an AI API or use a trained model
-  
-  // For now, we'll create a template-based generation
-  const structure = SONG_STRUCTURES['verse-chorus-verse'];
-  const sections = [];
+// Content generation using Gemma
+const generateContent = async ({ styleProfile, userPrompt, editRequest, exclusions, genre, artists }) => {
+  try {
+    // Build the prompt
+    const prompt = `
+You are an expert songwriter. Generate song lyrics in the style of ${artists.join(' and ')}.
 
-  structure.forEach(section => {
-    const content = generateSection(section, styleProfile, userPrompt, exclusions);
-    sections.push(content);
-  });
+Genre: ${genre}
+Style characteristics: ${JSON.stringify(styleProfile, null, 2)}
+User's creative direction: ${userPrompt || 'Create something authentic to the artist(s) style'}
+${editRequest ? `Special request: ${editRequest}` : ''}
+${exclusions.length > 0 ? `Avoid these themes/words: ${exclusions.join(', ')}` : ''}
 
-  return sections.join('\n\n');
+Generate complete song lyrics with verses, chorus, and bridge.`;
+
+    // Generate content with Gemma
+    const text = await generateWithGemma(prompt);
+
+    // Validate the generated content
+    if (validateContent(text, exclusions)) {
+      return text;
+    } else {
+      // Regenerate if excluded content found
+      return generateContent({ styleProfile, userPrompt, editRequest, exclusions, genre, artists });
+    }
+  } catch (error) {
+    console.error('Gemma Generation error:', error);
+    return generateFallbackContent(genre, artists, userPrompt);
+  }
 };
 
-// Generate individual sections
-const generateSection = (sectionType, styleProfile, userPrompt, exclusions) => {
-  // Placeholder implementation
-  const templates = {
-    'Verse 1': [
-      "Walking down this road alone",
-      "Searching for a place called home",
-      "Every step I take, I know",
-      "There's a light that helps me grow"
-    ],
-    'Chorus': [
-      "We're gonna rise above it all",
-      "Stand tall when we fall",
-      "Together we're unstoppable",
-      "This is our time to shine"
-    ],
-    'Verse 2': [
-      "Looking back at where we've been",
-      "All the battles we couldn't win",
-      "But we learned from every scar",
-      "Now we know just who we are"
-    ],
-    'Bridge': [
-      "When the world gets heavy",
-      "And the path's unsteady",
-      "We'll find our way",
-      "To a brighter day"
-    ]
-  };
+// Fallback content if API fails
+const generateFallbackContent = (genre, artists, userPrompt) => {
+  return `[Verse 1]
+Unable to connect to AI service
+Please check your API key
+And try again in a moment
+Your creativity is on the way
 
-  const sectionContent = templates[sectionType] || [
-    "This is where the magic happens",
-    "Every word a new beginning",
-    "Writing stories with our voices",
-    "Making all the perfect choices"
-  ];
+[Chorus]
+Connection error, but don't worry
+We'll get your lyrics in a hurry
+Just refresh and try once more
+Your song is worth waiting for
 
-  return `[${sectionType}]\n${sectionContent.join('\n')}`;
+[Note]
+If this persists, please check:
+1. Your API key is correct in the .env file
+2. You have internet connection
+3. The Google AI API is accessible`;
 };
 
 // Apply edits to existing lyrics
-export const applyEdits = (originalLyrics, editRequest) => {
-  // Placeholder - in a real app, this would use AI to apply specific edits
-  console.log('Applying edits:', editRequest);
-  return originalLyrics + '\n\n[Edit Applied]\n' + editRequest;
+export const applyEdits = async (originalLyrics, editRequest) => {
+  try {
+    const model = genAI.getGenerativeModel({ model: AI_MODEL });
+    
+    const prompt = `
+Here are existing song lyrics:
+
+${originalLyrics}
+
+Please apply this edit request: ${editRequest}
+
+Return the complete edited lyrics, maintaining the original structure and style.`;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    return response.text();
+  } catch (error) {
+    console.error('Edit error:', error);
+    return originalLyrics;
+  }
 };
 
 // Validate generated content
 export const validateContent = (lyrics, exclusions) => {
-  // Check for excluded content
   const lowerLyrics = lyrics.toLowerCase();
   for (const exclusion of exclusions) {
     if (lowerLyrics.includes(exclusion.toLowerCase())) {
