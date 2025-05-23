@@ -169,3 +169,56 @@ const extractSongStructure = (lyrics) => {
   
   return structure;
 };
+
+// Get the correct file path for an artist
+const getArtistDataPath = (genre, artistId) => {
+  // Define exact paths based on your repository structure
+  const pathMap = {
+    'Alternative-Indie': {
+      'Twenty-One-Pilots': 'Genres/Alternative-Indie/Twenty-One-Pilots/lyric-dataset.json',
+      'Lorde': 'Genres/Alternative-Indie/Lorde/lyric-dataset.json',
+      'Billie-Eilish': 'Genres/Alternative-Indie/Billie-Eilish/lyric-dataset.json'
+    },
+    'HipHop-Rap': {
+      'Lil-Uzi-Vert': 'Genres/HipHop-Rap/Lil-Uzi-Vert/lyric-dataset.json',
+      '21-savage': 'Genres/HipHop-Rap/21-savage/21_savage.json',
+      'Travis-Scott': 'Genres/HipHop-Rap/Travis-Scott/lyric-dataset.json',
+      'Post-Malone': 'Genres/HipHop-Rap/Post-Malone/lyric-dataset.json'
+    },
+    'Rock': {
+      'coldplay': 'Genres/Rock/coldplay/coldplay.json',
+      'Maroon-5': 'Genres/Rock/Maroon-5/lyric-dataset.json'
+    },
+    'RnB': {
+      'The-Weeknd': 'Genres/RnB/The-Weeknd/lyric-dataset.json'
+    },
+    'Pop': {
+      'Ariana-Grande': 'Genres/Pop/Ariana-Grande/lyric-dataset.json'
+    }
+  };
+
+  const artistPath = pathMap[genre]?.[artistId];
+  if (artistPath) {
+    return artistPath;
+  }
+
+  // Default path pattern
+  return `Genres/${genre}/${artistId}/lyric-dataset.json`;
+};
+
+// Mock data fallback when no real data is available
+const getMockArtistData = (artistId) => {
+  console.warn(`Using mock data for ${artistId}`);
+  return {
+    artist: {
+      name: artistId.replace(/-/g, ' '),
+      genres: ['Unknown'],
+      totalSongs: 0
+    },
+    songs: [],
+    metadata: {
+      sourceType: 'mock',
+      lastUpdated: new Date().toISOString()
+    }
+  };
+};
